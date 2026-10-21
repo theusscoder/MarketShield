@@ -1,23 +1,54 @@
+
+import os
+from contextlib import asynccontextmanager
+from pathlib import Path
+
+from dotenv import load_dotenv
 from fastapi import FastAPI
-from app.contracts.order import OrderRequest
+from fastapi.middleware.cors import CORSMiddleware
+
+# Load backend/.env before opening database connections.
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+load_dotenv(BACKEND_DIR / ".env")
+
+from app.auth.router import router as auth_router
+from app.auth.router import init_auth_database
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_auth_database()
+    yield
+
 
 app = FastAPI(
     title="MarketShield API",
-    version="0.1.0"
+    description="Educational market simulation and surveillance API",
+    version="1.0.0",
+    lifespan=lifespan,
 )
+
+allowed_origins = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(auth_router)
+
+
+@app.get("/")
+def root():
+    return {"message": "MarketShield API is running."}
 
 
 @app.get("/health")
 def health():
-    return {
-        "status": "ok",
-        "service": "marketshield"
-    }
-
-
-@app.post("/orders/validate")
-def validate_order(order: OrderRequest):
-    return {
-        "valid": True,
-        "order": order.model_dump()
-    }
+    return {"status": "ok"}
