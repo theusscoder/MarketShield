@@ -79,3 +79,44 @@ def non_crossing_scenario() -> Scenario:
             ExpectedOrderState("B1", OrderStatus.OPEN, 5),
         ),
     )
+
+def equal_price_fifo_scenario() -> Scenario:
+    """An incoming buyer fills the earliest equal-priced ask first."""
+    return Scenario(
+        name="equal_price_fifo_partial_fill",
+        orders=(
+            generate_order(
+                order_id="S1",
+                account_id="SellerA",
+                symbol="MSFT",
+                side=Side.SELL,
+                limit_price_paise=10300,
+                quantity=3,
+            ),
+            generate_order(
+                order_id="S2",
+                account_id="SellerB",
+                symbol="MSFT",
+                side=Side.SELL,
+                limit_price_paise=10300,
+                quantity=3,
+            ),
+            generate_order(
+                order_id="B1",
+                account_id="BuyerA",
+                symbol="MSFT",
+                side=Side.BUY,
+                limit_price_paise=10500,
+                quantity=4,
+            ),
+        ),
+        expected_trades=(
+            ExpectedTrade("B1", "S1", 10300, 3),
+            ExpectedTrade("B1", "S2", 10300, 1),
+        ),
+        expected_orders=(
+            ExpectedOrderState("S1", OrderStatus.FILLED, 0),
+            ExpectedOrderState("S2", OrderStatus.PARTIALLY_FILLED, 2),
+            ExpectedOrderState("B1", OrderStatus.FILLED, 0),
+        ),
+    )

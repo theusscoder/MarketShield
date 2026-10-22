@@ -5,7 +5,11 @@ from app.contracts.order import OrderStatus, Side
 from app.exchange.matching_engine import MatchingEngine
 from app.simulator.order_generator import generate_order, generate_orders
 from app.simulator.runner import run_scenario
-from app.simulator.scenarios import non_crossing_scenario, required_two_trade_scenario
+from app.simulator.scenarios import (
+    equal_price_fifo_scenario,
+    non_crossing_scenario,
+    required_two_trade_scenario,
+)
 from app.surveillance.features import (
     account_order_activity,
     cancellation_ratio,
@@ -13,6 +17,19 @@ from app.surveillance.features import (
     order_notional_paise,
     remaining_ratio,
 )
+
+
+
+@pytest.mark.parametrize("symbols", ["MSFT", b"MSFT", 123])
+def test_generate_orders_rejects_invalid_symbols_container(symbols):
+    with pytest.raises(ValueError, match="symbols must be a sequence"):
+        generate_orders(seed=1, count=3, symbols=symbols)
+
+
+@pytest.mark.parametrize("symbols", [[], (), ["MSFT", ""], ["MSFT", "   "], ["MSFT", 123]])
+def test_generate_orders_rejects_empty_or_invalid_symbols(symbols):
+    with pytest.raises(ValueError):
+        generate_orders(seed=1, count=3, symbols=symbols)
 
 
 def trade_signature(trades):
@@ -228,3 +245,32 @@ def test_non_crossing_scenario_matches_declared_expectations():
         actual = engine.get_order(expected.order_id)
         assert actual.status == expected.status
         assert actual.remaining_quantity == expected.remaining_quantity
+
+def test_equal_price_fifo_scenario_produces_expected_trades_and_order_states():
+    scenario = equal_price_fifo_scenario()
+    engine, trades = run_scenario(scenario)
+
+    assert trade_signature(trades) == [
+        ("B1", "S1", 10300, 3, 1),
+        ("B1", "S2", 10300, 1, 2),
+    ]
+
+    assert len(trades) == 2
+    assert sum(trade.quantity for trade in trades) == 4
+
+    for expected in scenario.expected_orders:
+        actual = engine.get_order(expected.order_id)
+        assert actual is not None
+        assert actual.status == expected.status
+        assert actual.remaining_quantity == expected.remaining_quantity
+
+    assert [order.order_id for order in engine.order_book.get_asks("MSFT")] == ["S2"]
+    assert engine.order_book.get_asks("MSFT")[0].remaining_quantity == 2
+    assert engine.order_book.get_bids("MSFT") == []
+
+
+def test_equal_price_fifo_scenario_is_reproducible():
+    _, first_trades = run_scenario(equal_price_fifo_scenario())
+    _, second_trades = run_scenario(equal_price_fifo_scenario())
+
+    assert trade_signature(first_trades) == trade_signature(second_trades)
