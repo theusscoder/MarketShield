@@ -223,3 +223,74 @@ def test_different_symbols_never_match():
     assert trades == []
     assert len(engine.order_book.get_asks("MSFT")) == 1
     assert len(engine.order_book.get_bids("AAPL")) == 1
+
+
+def test_incoming_order_can_be_partially_filled_and_rest_in_book():
+    engine = MatchingEngine()
+    engine.submit_order(make_order("S1", "SellerA", Side.SELL, 103, 6))
+
+    buyer = make_order("B1", "BuyerA", Side.BUY, 105, 10)
+    trades = engine.submit_order(buyer)
+
+    assert [(trade.sell_order_id, trade.quantity) for trade in trades] == [
+        ("S1", 6)
+    ]
+    assert buyer.remaining_quantity == 4
+    assert buyer.status == OrderStatus.PARTIALLY_FILLED
+    assert [order.order_id for order in engine.order_book.get_bids("MSFT")] == ["B1"]
+
+
+def test_exact_price_match_executes_trade():
+    engine = MatchingEngine()
+    engine.submit_order(make_order("S1", "SellerA", Side.SELL, 103, 2))
+    trades = engine.submit_order(make_order("B1", "BuyerA", Side.BUY, 103, 2))
+
+    assert len(trades) == 1
+    assert trades[0].price_paise == 10300
+    assert trades[0].quantity == 2
+
+
+def test_filled_order_cannot_be_cancelled():
+    engine = MatchingEngine()
+    engine.submit_order(make_order("S1", "SellerA", Side.SELL, 103, 2))
+    engine.submit_order(make_order("B1", "BuyerA", Side.BUY, 103, 2))
+
+    assert engine.get_order("S1").status == OrderStatus.FILLED
+    assert engine.cancel_order("S1") is False
+
+
+def test_unknown_order_cannot_be_cancelled():
+    assert MatchingEngine().cancel_order("missing") is False
+
+
+def test_whitespace_only_account_or_symbol_is_rejected():
+    engine = MatchingEngine()
+    with pytest.raises(ValueError, match="Account ID"):
+        engine.submit_order(make_order("S1", "   ", Side.SELL, 103, 2))
+
+    with pytest.raises(ValueError, match="Symbol"):
+        engine.submit_order(
+            make_order("S2", "SellerA", Side.SELL, 103, 2, symbol="   ")
+        )
+
+
+def test_invalid_new_order_state_is_rejected_without_recording_order():
+    engine = MatchingEngine()
+    invalid = make_order("S1", "SellerA", Side.SELL, 103, 2)
+    invalid.status = OrderStatus.FILLED
+
+    with pytest.raises(ValueError, match="OPEN status"):
+        engine.submit_order(invalid)
+
+    assert engine.get_order("S1") is None
+    assert engine.trades == []
+
+
+def test_order_from_different_symbol_does_not_consume_resting_quantity():
+    engine = MatchingEngine()
+    engine.submit_order(make_order("S1", "SellerA", Side.SELL, 100, 7, symbol="MSFT"))
+    trades = engine.submit_order(make_order("B1", "BuyerA", Side.BUY, 110, 7, symbol="AAPL"))
+
+    assert trades == []
+    assert engine.get_order("S1").remaining_quantity == 7
+    assert engine.get_order("B1").remaining_quantity == 7
