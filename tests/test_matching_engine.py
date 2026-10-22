@@ -316,6 +316,10 @@ def test_best_bid_has_priority():
     assert trades[0].buy_order_id == "B2"
     assert trades[0].sell_order_id == "S1"
     assert trades[0].price_paise == 10500
+    assert trades[0].buyer_account_id == "BuyerB"
+    assert trades[0].seller_account_id == "SellerA"
+    assert trades[0].timestamp.tzinfo is not None
+    assert trades[0].timestamp.utcoffset() is not None
 
 
 def test_equal_price_bids_use_fifo():

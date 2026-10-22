@@ -4,7 +4,7 @@ from uuid import uuid4
 from app.contracts.order import Order, OrderStatus, Side
 from app.contracts.trade import Trade
 from app.exchange.order_book import OrderBook
-
+from datetime import datetime, timezone
 
 class MatchingEngine:
     """Sequential, in-memory limit-order matching engine."""
@@ -62,11 +62,13 @@ class MatchingEngine:
                 symbol=order.symbol,
                 buy_order_id=buy_order.order_id,
                 sell_order_id=sell_order.order_id,
+                buyer_account_id=buy_order.account_id,
+                seller_account_id=sell_order.account_id,
                 price_paise=execution_price,
                 quantity=traded_quantity,
                 sequence=self._next_trade_sequence,
+                timestamp=datetime.now(timezone.utc),
             )
-
             self._next_trade_sequence += 1
             self.trades.append(trade)
             new_trades.append(trade)
