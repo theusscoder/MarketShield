@@ -1,5 +1,4 @@
 
-import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -7,7 +6,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# Load backend/.env before opening database connections.
+# Load backend/.env before initializing database connections.
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 load_dotenv(BACKEND_DIR / ".env")
 
