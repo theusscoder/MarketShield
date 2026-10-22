@@ -7,9 +7,17 @@ def test_phase1_demo(capsys):
 
     output = capsys.readouterr().out
 
-    assert "required_two_trade_partial_fill" in output
-    assert "non_crossing_orders" in output
-    assert "best_bid_priority" in output
+    expected_scenarios = [
+        "required_two_trade_partial_fill",
+        "single_trade_partial_fill",
+        "non_crossing_orders",
+        "best_bid_priority",
+        "unusual_large_order_activity",
+        "equal_price_fifo_partial_fill",
+    ]
 
-    assert output.count("RESULT: PASS") == 3
+    for scenario in expected_scenarios:
+        assert scenario in output
+
+    assert output.count("RESULT: PASS") == len(expected_scenarios)
     assert "ALL PHASE 1 DEMO SCENARIOS PASSED" in output

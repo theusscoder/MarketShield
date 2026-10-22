@@ -294,3 +294,53 @@ def test_order_from_different_symbol_does_not_consume_resting_quantity():
     assert trades == []
     assert engine.get_order("S1").remaining_quantity == 7
     assert engine.get_order("B1").remaining_quantity == 7
+
+def test_best_bid_has_priority():
+    engine = MatchingEngine()
+
+    # Submit the lower-priced buy order first.
+    engine.submit_order(
+        make_order("B1", "BuyerA", Side.BUY, 100, 5)
+    )
+    # Submit the higher-priced buy order second.
+    engine.submit_order(
+        make_order("B2", "BuyerB", Side.BUY, 105, 5)
+    )
+
+    # An incoming sell order should match the highest bid first.
+    trades = engine.submit_order(
+        make_order("S1", "SellerA", Side.SELL, 95, 5)
+    )
+
+    assert len(trades) == 1
+    assert trades[0].buy_order_id == "B2"
+    assert trades[0].sell_order_id == "S1"
+    assert trades[0].price_paise == 10500
+    assert trades[0].buyer_account_id == "BuyerB"
+    assert trades[0].seller_account_id == "SellerA"
+    assert trades[0].timestamp.tzinfo is not None
+    assert trades[0].timestamp.utcoffset() is not None
+
+
+def test_equal_price_bids_use_fifo():
+    engine = MatchingEngine()
+
+    # B1 arrives before B2 at the same bid price.
+    engine.submit_order(
+        make_order("B1", "BuyerA", Side.BUY, 100, 3)
+    )
+    engine.submit_order(
+        make_order("B2", "BuyerB", Side.BUY, 100, 3)
+    )
+
+    # This sell order can fill both bids, but only partially fills B2.
+    trades = engine.submit_order(
+        make_order("S1", "SellerA", Side.SELL, 100, 4)
+    )
+
+    assert [trade.buy_order_id for trade in trades] == ["B1", "B2"]
+    assert [trade.quantity for trade in trades] == [3, 1]
+
+    assert engine.get_order("B1").status == OrderStatus.FILLED
+    assert engine.get_order("B2").status == OrderStatus.PARTIALLY_FILLED
+    assert engine.get_order("B2").remaining_quantity == 2

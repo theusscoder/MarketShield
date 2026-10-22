@@ -1,11 +1,13 @@
 
 """Runnable MarketShield Phase 1 integration demonstration."""
-
 from app.simulator.runner import run_scenario
 from app.simulator.scenarios import (
-    best_bid_priority_scenario,
-    non_crossing_scenario,
     required_two_trade_scenario,
+    single_trade_partial_fill_scenario,
+    non_crossing_scenario,
+    best_bid_priority_scenario,
+    unusual_activity_scenario,
+    equal_price_fifo_scenario,
 )
 
 
@@ -80,10 +82,13 @@ def main():
     print("\nMARKETSHIELD - PHASE 1 INTEGRATION DEMO")
 
     scenarios = [
-        required_two_trade_scenario(),
-        non_crossing_scenario(),
-        best_bid_priority_scenario(),
-    ]
+    required_two_trade_scenario(),
+    single_trade_partial_fill_scenario(),
+    non_crossing_scenario(),
+    best_bid_priority_scenario(),
+    unusual_activity_scenario(),
+    equal_price_fifo_scenario(),
+]
 
     for scenario in scenarios:
         display_scenario(scenario)

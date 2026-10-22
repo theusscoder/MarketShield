@@ -6,10 +6,11 @@ from app.exchange.matching_engine import MatchingEngine
 from app.simulator.order_generator import generate_order, generate_orders
 from app.simulator.runner import run_scenario
 from app.simulator.scenarios import (
-    non_crossing_scenario,
     required_two_trade_scenario,
+    non_crossing_scenario,
     single_trade_partial_fill_scenario,
     unusual_activity_scenario,
+    equal_price_fifo_scenario,
 )
 from app.surveillance.features import (
     account_order_activity,

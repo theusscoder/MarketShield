@@ -55,14 +55,11 @@ def generate_orders(
         raise ValueError("count must be a non-negative integer")
 
     # Reject strings, numbers, None, and empty sequences.
-    if (
-        not isinstance(symbols, Sequence)
-        or isinstance(symbols, (str, bytes))
-        or not symbols
-    ):
-        raise ValueError(
-            "symbols must be a non-empty sequence of symbol strings"
-        )
+    if isinstance(symbols, (str, bytes)) or not isinstance(symbols, Sequence):
+        raise ValueError("symbols must be a sequence of symbol strings")
+
+    if not symbols:
+        raise ValueError("symbols must contain at least one symbol")
 
     # Reject empty or invalid elements inside the sequence.
     if any(
