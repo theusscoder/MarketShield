@@ -1,5 +1,6 @@
 
 from uuid import uuid4
+from datetime import datetime, timezone
 
 from app.contracts.order import Order, OrderStatus, Side
 from app.contracts.trade import Trade
@@ -58,14 +59,21 @@ class MatchingEngine:
             resting.remaining_quantity -= traded_quantity
 
             trade = Trade(
-                trade_id=str(uuid4()),
-                symbol=order.symbol,
-                buy_order_id=buy_order.order_id,
-                sell_order_id=sell_order.order_id,
-                price_paise=execution_price,
-                quantity=traded_quantity,
-                sequence=self._next_trade_sequence,
-            )
+    trade_id=str(uuid4()),
+    symbol=order.symbol,
+
+    buy_order_id=buy_order.order_id,
+    sell_order_id=sell_order.order_id,
+
+    buyer_account_id=buy_order.account_id,
+    seller_account_id=sell_order.account_id,
+
+    price_paise=execution_price,
+    quantity=traded_quantity,
+    sequence=self._next_trade_sequence,
+
+    timestamp=datetime.now(timezone.utc),
+)
 
             self._next_trade_sequence += 1
             self.trades.append(trade)

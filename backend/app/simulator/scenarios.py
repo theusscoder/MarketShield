@@ -79,3 +79,34 @@ def non_crossing_scenario() -> Scenario:
             ExpectedOrderState("B1", OrderStatus.OPEN, 5),
         ),
     )
+def best_bid_priority_scenario() -> Scenario:
+    """A seller must match the highest-priced resting buyer first."""
+    return Scenario(
+        name="best_bid_priority",
+        orders=(
+            generate_order(
+                order_id="B1", account_id="BuyerA",
+                symbol="MSFT", side=Side.BUY,
+                limit_price_paise=10500, quantity=5,
+            ),
+            generate_order(
+                order_id="B2", account_id="BuyerB",
+                symbol="MSFT", side=Side.BUY,
+                limit_price_paise=10700, quantity=5,
+            ),
+            generate_order(
+                order_id="S1", account_id="SellerA",
+                symbol="MSFT", side=Side.SELL,
+                limit_price_paise=10400, quantity=6,
+            ),
+        ),
+        expected_trades=(
+            ExpectedTrade("B2", "S1", 10700, 5),
+            ExpectedTrade("B1", "S1", 10500, 1),
+        ),
+        expected_orders=(
+            ExpectedOrderState("B1", OrderStatus.PARTIALLY_FILLED, 4),
+            ExpectedOrderState("B2", OrderStatus.FILLED, 0),
+            ExpectedOrderState("S1", OrderStatus.FILLED, 0),
+        ),
+    )
