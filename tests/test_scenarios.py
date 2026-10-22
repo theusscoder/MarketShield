@@ -5,7 +5,11 @@ from app.contracts.order import OrderStatus, Side
 from app.exchange.matching_engine import MatchingEngine
 from app.simulator.order_generator import generate_order, generate_orders
 from app.simulator.runner import run_scenario
-from app.simulator.scenarios import non_crossing_scenario, required_two_trade_scenario
+from app.simulator.scenarios import (
+    non_crossing_scenario,
+    required_two_trade_scenario,
+    single_trade_partial_fill_scenario,
+)
 from app.surveillance.features import (
     account_order_activity,
     cancellation_ratio,
@@ -228,3 +232,40 @@ def test_non_crossing_scenario_matches_declared_expectations():
         actual = engine.get_order(expected.order_id)
         assert actual.status == expected.status
         assert actual.remaining_quantity == expected.remaining_quantity
+
+
+def test_single_trade_partial_fill_scenario():
+    scenario = single_trade_partial_fill_scenario()
+    engine, trades = run_scenario(scenario)
+
+    # Verify the actual trade against the declared expectation.
+    assert trade_signature(trades) == [
+        (
+            expected.buy_order_id,
+            expected.sell_order_id,
+            expected.price_paise,
+            expected.quantity,
+            index,
+        )
+        for index, expected in enumerate(
+            scenario.expected_trades, start=1
+        )
+    ]
+    assert len(trades) == 1
+
+    # Verify the final state of each order.
+    for expected in scenario.expected_orders:
+        actual = engine.get_order(expected.order_id)
+
+        assert actual is not None
+        assert actual.status == expected.status
+        assert actual.remaining_quantity == expected.remaining_quantity
+        assert 0 <= actual.remaining_quantity <= actual.quantity
+
+    # The partially filled sell order should remain in the ask book.
+    asks = engine.order_book.get_asks("MSFT")
+    assert [order.order_id for order in asks] == ["S1"]
+    assert asks[0].remaining_quantity == 2
+
+    # The fully filled buy order should not remain in the bid book.
+    assert engine.order_book.get_bids("MSFT") == []

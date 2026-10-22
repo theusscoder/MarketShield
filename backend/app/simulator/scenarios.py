@@ -58,6 +58,40 @@ def required_two_trade_scenario() -> Scenario:
         ),
     )
 
+def single_trade_partial_fill_scenario() -> Scenario:
+    """One buyer partially fills a resting sell order."""
+    return Scenario(
+        name="single_trade_partial_fill",
+        orders=(
+            generate_order(
+                order_id="S1",
+                account_id="SellerA",
+                symbol="MSFT",
+                side=Side.SELL,
+                limit_price_paise=10000,
+                quantity=5,
+            ),
+            generate_order(
+                order_id="B1",
+                account_id="BuyerA",
+                symbol="MSFT",
+                side=Side.BUY,
+                limit_price_paise=10000,
+                quantity=3,
+            ),
+        ),
+        expected_trades=(
+            ExpectedTrade("B1", "S1", 10000, 3),
+        ),
+        expected_orders=(
+            ExpectedOrderState(
+                "S1", OrderStatus.PARTIALLY_FILLED, 2
+            ),
+            ExpectedOrderState(
+                "B1", OrderStatus.FILLED, 0
+            ),
+        ),
+    )
 
 def non_crossing_scenario() -> Scenario:
     """A bid below the ask must rest without generating a trade."""
