@@ -58,6 +58,40 @@ def required_two_trade_scenario() -> Scenario:
         ),
     )
 
+def single_trade_partial_fill_scenario() -> Scenario:
+    """One buyer partially fills a resting sell order."""
+    return Scenario(
+        name="single_trade_partial_fill",
+        orders=(
+            generate_order(
+                order_id="S1",
+                account_id="SellerA",
+                symbol="MSFT",
+                side=Side.SELL,
+                limit_price_paise=10000,
+                quantity=5,
+            ),
+            generate_order(
+                order_id="B1",
+                account_id="BuyerA",
+                symbol="MSFT",
+                side=Side.BUY,
+                limit_price_paise=10000,
+                quantity=3,
+            ),
+        ),
+        expected_trades=(
+            ExpectedTrade("B1", "S1", 10000, 3),
+        ),
+        expected_orders=(
+            ExpectedOrderState(
+                "S1", OrderStatus.PARTIALLY_FILLED, 2
+            ),
+            ExpectedOrderState(
+                "B1", OrderStatus.FILLED, 0
+            ),
+        ),
+    )
 
 def non_crossing_scenario() -> Scenario:
     """A bid below the ask must rest without generating a trade."""
@@ -80,24 +114,33 @@ def non_crossing_scenario() -> Scenario:
         ),
     )
 def best_bid_priority_scenario() -> Scenario:
-    """A seller must match the highest-priced resting buyer first."""
+    """Highest-priced resting buyer must execute first."""
     return Scenario(
         name="best_bid_priority",
         orders=(
             generate_order(
-                order_id="B1", account_id="BuyerA",
-                symbol="MSFT", side=Side.BUY,
-                limit_price_paise=10500, quantity=5,
+                order_id="B1",
+                account_id="BuyerA",
+                symbol="MSFT",
+                side=Side.BUY,
+                limit_price_paise=10500,
+                quantity=5,
             ),
             generate_order(
-                order_id="B2", account_id="BuyerB",
-                symbol="MSFT", side=Side.BUY,
-                limit_price_paise=10700, quantity=5,
+                order_id="B2",
+                account_id="BuyerB",
+                symbol="MSFT",
+                side=Side.BUY,
+                limit_price_paise=10700,
+                quantity=5,
             ),
             generate_order(
-                order_id="S1", account_id="SellerA",
-                symbol="MSFT", side=Side.SELL,
-                limit_price_paise=10400, quantity=6,
+                order_id="S1",
+                account_id="SellerA",
+                symbol="MSFT",
+                side=Side.SELL,
+                limit_price_paise=10400,
+                quantity=6,
             ),
         ),
         expected_trades=(
@@ -108,5 +151,59 @@ def best_bid_priority_scenario() -> Scenario:
             ExpectedOrderState("B1", OrderStatus.PARTIALLY_FILLED, 4),
             ExpectedOrderState("B2", OrderStatus.FILLED, 0),
             ExpectedOrderState("S1", OrderStatus.FILLED, 0),
+        ),
+    )
+
+
+
+
+def unusual_activity_scenario() -> Scenario:
+    """Repeated large buy orders from one account."""
+    return Scenario(
+        name="unusual_large_order_activity",
+        orders=(
+            generate_order(
+                order_id="S1", account_id="SellerA",
+                symbol="MSFT", side=Side.SELL,
+                limit_price_paise=10000, quantity=40,
+            ),
+            generate_order(
+                order_id="S2", account_id="SellerB",
+                symbol="MSFT", side=Side.SELL,
+                limit_price_paise=10100, quantity=40,
+            ),
+            generate_order(
+                order_id="S3", account_id="SellerC",
+                symbol="MSFT", side=Side.SELL,
+                limit_price_paise=10200, quantity=40,
+            ),
+            generate_order(
+                order_id="B1", account_id="HighActivityAccount",
+                symbol="MSFT", side=Side.BUY,
+                limit_price_paise=10000, quantity=100,
+            ),
+            generate_order(
+                order_id="B2", account_id="HighActivityAccount",
+                symbol="MSFT", side=Side.BUY,
+                limit_price_paise=10100, quantity=100,
+            ),
+            generate_order(
+                order_id="B3", account_id="HighActivityAccount",
+                symbol="MSFT", side=Side.BUY,
+                limit_price_paise=10200, quantity=100,
+            ),
+        ),
+        expected_trades=(
+            ExpectedTrade("B1", "S1", 10000, 40),
+            ExpectedTrade("B2", "S2", 10100, 40),
+            ExpectedTrade("B3", "S3", 10200, 40),
+        ),
+        expected_orders=(
+            ExpectedOrderState("S1", OrderStatus.FILLED, 0),
+            ExpectedOrderState("S2", OrderStatus.FILLED, 0),
+            ExpectedOrderState("S3", OrderStatus.FILLED, 0),
+            ExpectedOrderState("B1", OrderStatus.PARTIALLY_FILLED, 60),
+            ExpectedOrderState("B2", OrderStatus.PARTIALLY_FILLED, 60),
+            ExpectedOrderState("B3", OrderStatus.PARTIALLY_FILLED, 60),
         ),
     )
