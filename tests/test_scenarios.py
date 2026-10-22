@@ -202,6 +202,8 @@ def test_seeded_generator_handles_zero_orders():
         {"seed": 1, "count": 1, "symbols": ()},
         {"seed": 1, "count": 1, "symbols": ("",)},
         {"seed": 1, "count": 1, "account_count": 0},
+        {"seed": 1, "count": 1, "symbols": "MSFT"},
+        {"seed": 1, "count": 1, "symbols": 123},
     ],
 )
 def test_seeded_generator_rejects_invalid_configuration(kwargs):

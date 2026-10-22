@@ -58,6 +58,8 @@ def generate_orders(
         raise ValueError("seed must be an integer")
     if not isinstance(count, int) or isinstance(count, bool) or count < 0:
         raise ValueError("count must be a non-negative integer")
+    if isinstance(symbols, str) or not isinstance(symbols, Sequence):
+        raise ValueError("symbols must be a sequence of symbol strings")
     if not symbols:
         raise ValueError("symbols must contain at least one symbol")
     if any(not isinstance(symbol, str) or not symbol.strip() for symbol in symbols):
